@@ -1,3 +1,14 @@
+<%= javascript_tag nonce: true do %>
+  function createSelect(id, options) {
+    const element = document.getElementById(id)
+    const onChange = function () {
+      this.blur()
+    }
+    new TomSelect(element, {onChange, ...options})
+    show(element.closest(".hide"))
+  }
+<% end %>
+
 <%= form_for @check, html: {class: "small-form"} do |f| %>
   <% unless @check.respond_to?(:check_type) || @check.respond_to?(:invert) %>
     <p class="text-muted">Checks are designed to identify bad data. A check fails if there are any results.</p>
@@ -15,8 +26,7 @@
     <%= javascript_tag nonce: true do %>
       <%= blazer_js_var "queries", Blazer::Query.active.named.order(:name).select("id, name").map { |q| {text: q.name, value: q.id} } %>
       <%= blazer_js_var "items", [@check.query_id].compact %>
-
-      $("#check_query_id").selectize({options: queries, items: items, highlight: false, maxOptions: 100}).parents(".hide").removeClass("hide");
+      createSelect("check_query_id", {options: queries, items: items, highlight: false, maxOptions: 100})
     <% end %>
   </div>
 
@@ -24,12 +34,11 @@
     <div class="form-group">
       <%= f.label :check_type, "Alert if" %>
       <div class="hide">
-        <% check_options = [["Any results (bad data)", "bad_data"], ["No results (missing data)", "missing_data"]] %>
-        <% check_options << ["Anomaly (most recent data point)", "anomaly"] if Blazer.anomaly_checks %>
+        <% check_options = Blazer.check_types.reject { |k, _| k == "anomaly" && !Blazer.anomaly_checks }.map { |k, v| [v[:label], k] } %>
         <%= f.select :check_type, check_options %>
       </div>
       <%= javascript_tag nonce: true do %>
-        $("#check_check_type").selectize({}).parent().removeClass("hide");
+        createSelect("check_check_type", {})
       <% end %>
     </div>
   <% elsif @check.respond_to?(:invert) %>
@@ -39,7 +48,7 @@
         <%= f.select :invert, [["Any results (bad data)", false], ["No results (missing data)", true]] %>
       </div>
       <%= javascript_tag nonce: true do %>
-        $("#check_invert").selectize({}).parent().removeClass("hide");
+        createSelect("check_invert", {})
       <% end %>
     </div>
   <% end %>
@@ -51,24 +60,19 @@
         <%= f.select :schedule, Blazer.check_schedules.map { |v| [v, v] } %>
       </div>
       <%= javascript_tag nonce: true do %>
-        $("#check_schedule").selectize({}).parent().removeClass("hide");
+        createSelect("check_schedule", {})
       <% end %>
     </div>
   <% end %>
 
-  <div class="form-group">
-    <%= f.label :emails %>
-    <%= f.text_field :emails, placeholder: "Optional, comma separated", class: "form-control" %>
-  </div>
-
-  <% if Blazer.slack? %>
+  <% Blazer.notifiers.flat_map(&:fields).each do |field| %>
     <div class="form-group">
-      <%= f.label :slack_channels %>
-      <%= f.text_field :slack_channels, placeholder: "Optional, comma separated", class: "form-control" %>
+      <%= f.label field %>
+      <%= f.text_field field, placeholder: "Optional, comma separated", class: "form-control" %>
     </div>
   <% end %>
 
-  <p class="text-muted">Emails <%= Blazer.slack? ? "and Slack notifications " : nil %>are sent when a check starts failing, and when it starts passing again.
+  <p class="text-muted">Notifications are sent when a check starts failing, and when it starts passing again.
   <p>
     <% if @check.persisted? %>
       <%= link_to "Delete", check_path(@check), method: :delete, "data-confirm" => "Are you sure?", class: "btn btn-danger" %>

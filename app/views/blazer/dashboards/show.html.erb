@@ -2,10 +2,10 @@
 
 <div class="topbar">
   <div class="container">
-    <div class="row" style="padding-top: 13px;">
+    <div class="row name-row">
       <div class="col-sm-9">
         <%= render partial: "blazer/nav" %>
-        <h3 style="line-height: 34px; display: inline; margin-left: 5px;">
+        <h3 class="name-header">
           <%= @dashboard.name %>
         </h3>
       </div>
@@ -16,10 +16,10 @@
   </div>
 </div>
 
-<div style="margin-bottom: 60px;"></div>
+<div class="topbar-margin"></div>
 
 <% if @data_sources.any? { |ds| ds.cache_mode != "off" } %>
-  <p class="text-muted" style="float: right;">
+  <p class="text-muted pull-right">
     Some queries may be cached
     <%= link_to "Refresh", refresh_dashboard_path(@dashboard, params: variable_params(@dashboard)), method: :post %>
   </p>
@@ -34,20 +34,27 @@
 <% @queries.each_with_index do |query, i| %>
   <div class="chart-container">
     <h4><%= link_to query.friendly_name, query_path(query, params: variable_params(query)), target: "_blank" %></h4>
-    <div id="chart-<%= i %>" class="chart">
+    <%= tag.div id: "chart-#{i}", class: "chart" do %>
       <p class="text-muted">Loading...</p>
-    </div>
+    <% end %>
   </div>
+  <% run_data = {statement: query.statement, query_id: query.id, data_source: query.data_source, variables: variable_params(query), only_chart: true} %>
+  <% run_data.merge!(cohort_period: params[:cohort_period]) if params[:cohort_period] %>
   <%= javascript_tag nonce: true do %>
-    <% data = {statement: query.statement, query_id: query.id, data_source: query.data_source, variables: variable_params(query), only_chart: true} %>
-    <% data.merge!(cohort_period: params[:cohort_period]) if params[:cohort_period] %>
-    <%= blazer_js_var "data", data %>
-
-    runQuery(data, function (data) {
-      $("#chart-<%= i %>").html(data)
-      $("#chart-<%= i %> table").stupidtable(stupidtableCustomSettings)
-    }, function (message) {
-      $("#chart-<%= i %>").addClass("query-error").html(message)
-    });
+    (function () {
+      <%= blazer_js_var "chartId", "chart-#{i}" %>
+      <%= blazer_js_var "runData", run_data %>
+      const chart = document.getElementById(chartId)
+      runQuery(runData, function (data) {
+        renderResults(chart, data)
+        const table = chart.querySelector("table")
+        if (table) {
+          tablesort(table)
+        }
+      }, function (message) {
+        chart.classList.add("query-error")
+        chart.textContent = message
+      })
+    })()
   <% end %>
 <% end %>

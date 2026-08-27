@@ -1,7 +1,7 @@
 <% blazer_title "Checks" %>
 
 <div id="header">
-  <div class="pull-right" style="line-height: 34px;">
+  <div class="pull-right header-div">
     <div class="btn-group">
       <%= link_to "New Check", new_check_path, class: "btn btn-info" %>
       <button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -20,17 +20,17 @@
     </div>
   </div>
 
-  <input id="search" type="text" placeholder="Start typing a query or state" style="width: 300px; display: inline-block;" class="search form-control" />
+  <input id="search" type="text" placeholder="Start typing a query or state" class="search form-control" autofocus />
 </div>
 
 <table id="checks" class="table">
   <thead>
     <tr>
       <th>Query</th>
-      <th style="width: 10%;">State</th>
-      <th style="width: 10%;">Run</th>
-      <th style="width: 20%;">Notify</th>
-      <th style="width: 15%;"></th>
+      <th class="state-header">State</th>
+      <th class="run-header">Run</th>
+      <th class="notify-header">Notify</th>
+      <th class="actions-header"></th>
     </tr>
   </thead>
   <tbody>
@@ -39,21 +39,18 @@
         <td><%= link_to check.query.name, check.query %> <span class="text-muted"><%= check.try(:check_type).to_s.gsub("_", " ") %></span></td>
         <td>
           <% if check.state %>
-            <small class="check-state <%= check.state.parameterize.gsub("-", "_") %>"><%= check.state.upcase %></small>
+            <%= tag.small check.state.upcase, class: ["check-state", check.state.parameterize.gsub("-", "_")] %>
           <% end %>
         </td>
         <td><%= check.schedule if check.respond_to?(:schedule) %></td>
         <td>
-          <ul class="list-unstyled" style="margin-bottom: 0; word-break: break-all;">
-            <% check.split_emails.each do |email| %>
-              <li><%= email %></li>
-            <% end %>
-            <% check.split_slack_channels.each do |channel| %>
-              <li><%= channel %></li>
+          <ul class="list-unstyled notifiers">
+            <% Blazer.notifiers.flat_map { |n| n.notify_list(check) }.each do |item| %>
+              <li><%= item %></li>
             <% end %>
           </ul>
         </td>
-        <td style="text-align: right; padding: 1px;">
+        <td class="check-actions">
           <%= link_to "Edit", edit_check_path(check), class: "btn btn-info" %>
           <%= button_to "Run Now", refresh_query_path(check.query), class: "btn btn-primary" %>
         </td>
@@ -63,10 +60,10 @@
 </table>
 
 <%= javascript_tag nonce: true do %>
-  $("#search").on("keyup", function() {
-    var value = $(this).val().toLowerCase()
-    $("#checks tbody tr").filter( function() {
-      $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
-    })
-  }).focus()
+  document.getElementById("search").addEventListener("input", function () {
+    const value = this.value.toLowerCase()
+    for (const check of document.querySelectorAll("#checks tbody tr")) {
+      toggle(check, check.textContent.toLowerCase().includes(value))
+    }
+  })
 <% end %>

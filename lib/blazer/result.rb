@@ -20,6 +20,21 @@ module Blazer
       cached_at.present?
     end
 
+    def explain
+      # TODO move to data source adapters
+      case @data_source.adapter
+      when "sql"
+        # TODO limit to Postgres and add other databases
+        if @columns == ["QUERY PLAN"]
+          @rows.map { |r| r[0] }.join("\n")
+        end
+      when "druid"
+        if @columns == ["PLAN"] && @rows.size == 1
+          @rows[0][0]
+        end
+      end
+    end
+
     def smart_values
       @smart_values ||= begin
         smart_values = {}

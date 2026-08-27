@@ -172,7 +172,7 @@ CREATE ROLE blazer LOGIN PASSWORD 'secret';
 GRANT CONNECT ON DATABASE dbname TO blazer;
 GRANT USAGE ON SCHEMA public TO blazer;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO blazer;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO blazer;
+ALTER DEFAULT PRIVILEGES FOR ROLE migrations_role IN SCHEMA public GRANT SELECT ON TABLES TO blazer;
 COMMIT;
 ```
 
@@ -483,7 +483,7 @@ anomaly_checks: anomaly_detection
 
 ## Forecasting
 
-Blazer supports for two different forecasting methods. [Example](https://blazer.dokkuapp.com/queries/18-forecast?forecast=t)
+Blazer supports for two different forecasting methods.
 
 A forecast link will appear for queries that return 2 columns with types timestamp and numeric.
 
@@ -575,6 +575,7 @@ data_sources:
 - [Apache Ignite](#apache-ignite)
 - [Apache Spark](#apache-spark)
 - [Cassandra](#cassandra)
+- [ClickHouse](#clickhouse)
 - [Druid](#druid)
 - [Elasticsearch](#elasticsearch)
 - [Google BigQuery](#google-bigquery)
@@ -615,6 +616,7 @@ data_sources:
     # optional settings
     output_location: s3://some-bucket/
     workgroup: primary
+    catalog: s3tablescatalog/some-bucket
     access_key_id: ...
     secret_access_key: ...
     region: ...
@@ -729,6 +731,18 @@ data_sources:
 ```
 
 Use a [read-only role](https://docs.datastax.com/en/cql-oss/3.3/cql/cql_using/useSecurePermission.html).
+
+### ClickHouse
+
+Set:
+
+```yml
+data_sources:
+  my_source:
+    adapter: clickhouse
+    url: https://user:password@hostname:8443
+    database: default
+```
 
 ### Druid
 
@@ -894,34 +908,16 @@ Use a read-only user. Supports [SOQL](https://developer.salesforce.com/docs/atla
 
 ### Snowflake
 
-First, install ODBC. For Homebrew, use:
-
-```sh
-brew install unixodbc
-```
-
-For Ubuntu, use:
-
-```sh
-sudo apt-get install unixodbc-dev
-```
-
-For Heroku, use the [Apt buildpack](https://github.com/heroku/heroku-buildpack-apt) and create an `Aptfile` with:
-
-```text
-unixodbc-dev
-https://sfc-repo.snowflakecomputing.com/odbc/linux/2.21.5/snowflake-odbc-2.21.5.x86_64.deb
-```
-
-> This installs the driver at `/app/.apt/usr/lib/snowflake/odbc/lib/libSnowflake.so`
-
-Then, download the [Snowflake ODBC driver](https://docs.snowflake.com/developer-guide/odbc/odbc-download). Add [odbc_adapter](https://github.com/localytics/odbc_adapter) to your Gemfile and set:
+Set:
 
 ```yml
 data_sources:
   my_source:
-    adapter: snowflake
-    conn_str: Driver=/path/to/libSnowflake.so;uid=user;pwd=password;server=host.snowflakecomputing.com
+    adapter: snowflake2
+    account_id: ...
+    database: ...
+    schema: PUBLIC
+    access_token: ...
 ```
 
 Use a [read-only role](https://docs.snowflake.com/en/user-guide/security-access-control-configure.html).
@@ -1038,7 +1034,7 @@ View the [changelog](https://github.com/ankane/blazer/blob/master/CHANGELOG.md)
 
 ## Thanks
 
-Blazer uses a number of awesome open source projects, including [Rails](https://github.com/rails/rails/), [Vue.js](https://github.com/vuejs/vue), [jQuery](https://github.com/jquery/jquery), [Bootstrap](https://github.com/twbs/bootstrap), [Selectize](https://github.com/brianreavis/selectize.js), [StickyTableHeaders](https://github.com/jmosbech/StickyTableHeaders), [Stupid jQuery Table Sort](https://github.com/joequery/Stupid-Table-Plugin), and [Date Range Picker](https://github.com/dangrossman/bootstrap-daterangepicker).
+Blazer uses a number of awesome open source projects, including [Rails](https://github.com/rails/rails), [Bootstrap](https://github.com/twbs/bootstrap), [Ace](https://github.com/ajaxorg/ace), [Chart.js](https://github.com/chartjs/Chart.js), [Moment.js](https://github.com/moment/moment), [Sortable](https://github.com/SortableJS/Sortable), [Tom Select](https://github.com/orchidjs/tom-select), and [Date Range Picker](https://github.com/dangrossman/daterangepicker).
 
 Demo data from [MovieLens](https://grouplens.org/datasets/movielens/).
 

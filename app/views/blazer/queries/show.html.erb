@@ -2,10 +2,10 @@
 
 <div class="topbar">
   <div class="container">
-    <div class="row" style="padding-top: 13px;">
+    <div class="row name-row">
       <div class="col-sm-9">
         <%= render partial: "blazer/nav" %>
-        <h3 style="line-height: 34px; display: inline; margin-left: 5px;">
+        <h3 class="name-header">
           <%= @query.name %>
         </h3>
       </div>
@@ -21,7 +21,7 @@
   </div>
 </div>
 
-<div style="margin-bottom: 60px;"></div>
+<div class="topbar-margin"></div>
 
 <% if @sql_errors.any? %>
   <div class="alert alert-danger">
@@ -34,7 +34,7 @@
 <% end %>
 
 <% if @query.description.present? %>
-  <p style="white-space: pre-line;"><%= @query.description %></p>
+  <p class="query-description"><%= @query.description %></p>
 <% end %>
 
 <%= render partial: "blazer/variables", locals: {action: query_path(@query)} %>
@@ -47,26 +47,33 @@
   </div>
 
   <%= javascript_tag nonce: true do %>
+    const results = document.getElementById("results")
+
     function showRun(data) {
-      $("#results").html(data)
-      $("#results table").stupidtable(stupidtableCustomSettings).stickyTableHeaders({fixedOffset: 60})
+      renderResults(results, data)
+      const table = results.querySelector("table")
+      if (table) {
+        tablesort(table)
+        table.classList.add("stickytable")
+      }
     }
 
     function showError(message) {
-      $("#results").addClass("query-error").html(message)
+      results.classList.add("query-error")
+      results.textContent = message
     }
 
-    <%= blazer_js_var "data", @run_data %>
+    <%= blazer_js_var "runData", @run_data %>
 
-    runQuery(data, showRun, showError)
+    runQuery(runData, showRun, showError)
   <% end %>
 <% end %>
 
 <%= javascript_tag nonce: true do %>
   // do not highlight really long queries
   // this can lead to performance issues
-  var code = $("#code code")
-  if (code.text().length < 10000) {
-    hljs.highlightElement(code.get(0))
+  const code = document.querySelector("#code code")
+  if (code.textContent.length < 10000) {
+    hljs.highlightElement(code)
   }
 <% end %>
